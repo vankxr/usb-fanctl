@@ -4015,6 +4015,12 @@ Logo</text>
 <part name="C14" library="Capacitor" deviceset="CAPACITOR" device="-0402" value="100nF"/>
 <part name="GND38" library="Supply Symbol" deviceset="GND" device=""/>
 <part name="VIN9" library="Supply Symbol" deviceset="VEXT" device=""/>
+<part name="C15" library="Capacitor" deviceset="CAPACITOR" device="-1206" value="22uF"/>
+<part name="VIN10" library="Supply Symbol" deviceset="VEXT" device=""/>
+<part name="GND39" library="Supply Symbol" deviceset="GND" device=""/>
+<part name="C16" library="Capacitor" deviceset="CAPACITOR" device="-1206" value="22uF"/>
+<part name="VIN11" library="Supply Symbol" deviceset="VEXT" device=""/>
+<part name="GND40" library="Supply Symbol" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -4597,6 +4603,28 @@ Logo</text>
 <instance part="VIN9" gate="G$1" x="335.28" y="68.58" smashed="yes">
 <attribute name="VALUE" x="332.74" y="66.04" size="1.778" layer="96" rot="R90"/>
 </instance>
+<instance part="C15" gate="G$1" x="467.36" y="157.48" smashed="yes" rot="R270">
+<attribute name="VALUE" x="464.5914" y="157.48" size="1.778" layer="96" ratio="10" rot="SR270" align="top-left"/>
+<attribute name="NAME" x="470.1286" y="157.48" size="1.778" layer="95" ratio="10" rot="SR270"/>
+<attribute name="VOLTAGE" x="462.0514" y="157.48" size="1.778" layer="97" ratio="10" rot="SR270" align="top-left"/>
+</instance>
+<instance part="VIN10" gate="G$1" x="467.36" y="162.56" smashed="yes">
+<attribute name="VALUE" x="464.82" y="160.02" size="1.778" layer="96" rot="R90"/>
+</instance>
+<instance part="GND39" gate="G$1" x="467.36" y="144.78" smashed="yes">
+<attribute name="VALUE" x="467.36" y="139.7" size="1.778" layer="96" align="bottom-center"/>
+</instance>
+<instance part="C16" gate="G$1" x="480.06" y="157.48" smashed="yes" rot="R270">
+<attribute name="VALUE" x="477.2914" y="157.48" size="1.778" layer="96" ratio="10" rot="SR270" align="top-left"/>
+<attribute name="NAME" x="482.8286" y="157.48" size="1.778" layer="95" ratio="10" rot="SR270"/>
+<attribute name="VOLTAGE" x="474.7514" y="157.48" size="1.778" layer="97" ratio="10" rot="SR270" align="top-left"/>
+</instance>
+<instance part="VIN11" gate="G$1" x="480.06" y="162.56" smashed="yes">
+<attribute name="VALUE" x="477.52" y="160.02" size="1.778" layer="96" rot="R90"/>
+</instance>
+<instance part="GND40" gate="G$1" x="480.06" y="144.78" smashed="yes">
+<attribute name="VALUE" x="480.06" y="139.7" size="1.778" layer="96" align="bottom-center"/>
+</instance>
 </instances>
 <busses>
 </busses>
@@ -4809,6 +4837,16 @@ Logo</text>
 <wire x1="347.98" y1="22.86" x2="347.98" y2="30.48" width="0.1524" layer="91"/>
 <pinref part="C14" gate="G$1" pin="C2"/>
 </segment>
+<segment>
+<pinref part="GND39" gate="G$1" pin="GND"/>
+<wire x1="467.36" y1="149.86" x2="467.36" y2="144.78" width="0.1524" layer="91"/>
+<pinref part="C15" gate="G$1" pin="C2"/>
+</segment>
+<segment>
+<pinref part="GND40" gate="G$1" pin="GND"/>
+<wire x1="480.06" y1="149.86" x2="480.06" y2="144.78" width="0.1524" layer="91"/>
+<pinref part="C16" gate="G$1" pin="C2"/>
+</segment>
 </net>
 <net name="N$1" class="0">
 <segment>
@@ -4906,6 +4944,16 @@ Logo</text>
 <pinref part="R20" gate="G$1" pin="2"/>
 <wire x1="335.28" y1="68.58" x2="335.28" y2="63.5" width="0.1524" layer="91"/>
 <pinref part="VIN9" gate="G$1" pin="VEXT"/>
+</segment>
+<segment>
+<pinref part="VIN10" gate="G$1" pin="VEXT"/>
+<wire x1="467.36" y1="157.48" x2="467.36" y2="162.56" width="0.1524" layer="91"/>
+<pinref part="C15" gate="G$1" pin="C1"/>
+</segment>
+<segment>
+<pinref part="VIN11" gate="G$1" pin="VEXT"/>
+<wire x1="480.06" y1="157.48" x2="480.06" y2="162.56" width="0.1524" layer="91"/>
+<pinref part="C16" gate="G$1" pin="C1"/>
 </segment>
 </net>
 <net name="PWM0" class="0">

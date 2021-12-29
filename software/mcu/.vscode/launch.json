@@ -1,0 +1,33 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug",
+            "cwd": "${workspaceRoot}",
+            "executable": "./bin/v1.usb-fanctl.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "preLaunchTask": "Build",
+            "servertype": "jlink",
+            "device": "EFM32PG1BXXXF256",
+            "svdFile": "${env:ARM_LIBROOT}/SiliconLabs.EFM32PG1B_DFP.5.8.10/SVD/EFM32PG1B/EFM32PG1B100F256GM32.svd",
+            "interface": "swd",
+            "swoConfig": {
+                "enabled": true,
+                "swoFrequency": 200000,
+                "cpuFrequency": 8000000,
+                "source": "probe",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "label": "Console",
+                        "type": "console",
+                    }
+                ]
+            }
+        }
+    ]
+}

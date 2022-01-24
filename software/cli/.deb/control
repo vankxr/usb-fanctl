@@ -1,0 +1,5 @@
+Package: usb-fanctl
+Version: 1.0
+Architecture: amd64
+Maintainer: João Silva <jgc3silva@gmail.com>
+Description: USB Fan Controller CLI tool

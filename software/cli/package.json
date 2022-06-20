@@ -2,7 +2,7 @@
   "name": "usb-fanctl",
   "version": "1.0.0",
   "description": "USB Fan Controller CLI tool",
-  "main": "src/index.js",
+  "main": "src/usb-fanctl.js",
   "scripts": {
     "test": "echo \\\"Error: no test specified\\\" && exit 1"
   },
@@ -13,7 +13,7 @@
   "author": "João Silva (vankxr)",
   "license": "GPL-3.0-or-later",
   "bin": {
-    "usb-fanctl": "./src/index.js"
+    "usb-fanctl": "./src/usb-fanctl.js"
   },
   "pkg": {
     "scripts": "src/**/*.js",

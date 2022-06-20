@@ -222,6 +222,40 @@ async function cmd_get_temperature(port, channel)
     if(cmdID === 0x04 && payloadLen === cmd.length - 4)
         return resp.readFloatLE(5);
 }
+async function cmd_set_freq(port, freq)
+{
+    let cmd = Buffer.from([0xC7, 0xFA, 0x05, 0x04, 0x00, 0x00, 0x00, 0x00]);
+
+    cmd.writeFloatLE(freq, 4);
+
+    let resp = await serial_port_cmd(port, cmd);
+
+    let magic = resp.readUInt16LE(0);
+    let cmdID = resp.readUInt8(2);
+    let payloadLen = resp.readUInt8(3);
+
+    if(cmdID === 0xE0)
+        throw new Error("Error setting frequency");
+
+    if(cmdID === 0x05)
+        return true;
+}
+async function cmd_get_freq(port)
+{
+    let cmd = Buffer.from([0xC7, 0xFA, 0x06, 0x04, 0x00, 0x00, 0x00, 0x00]);
+
+    let resp = await serial_port_cmd(port, cmd);
+
+    let magic = resp.readUInt16LE(0);
+    let cmdID = resp.readUInt8(2);
+    let payloadLen = resp.readUInt8(3);
+
+    if(cmdID === 0xE0)
+        throw new Error("Error getting frequency");
+
+    if(cmdID === 0x06 && payloadLen === cmd.length - 4)
+        return resp.readFloatLE(4);
+}
 async function cmd_get_uid(port)
 {
     let cmd = Buffer.from([0xC7, 0xFA, 0xF0, 0x00]);
@@ -327,6 +361,22 @@ async function run()
         return process.exit(0);
     }
 
+    if(typeof opts.freq === "number")
+    {
+        if(opts.freq < 0)
+        {
+            console.log("Invalid options provided");
+            console.log("Invalid frequency");
+
+            return process.exit(1);
+        }
+
+        await cmd_set_freq(port, opts.freq);
+
+        port.close();
+        return process.exit(0);
+    }
+
     if(typeof opts.channel === "number")
     {
         if(opts.channel < 0 || opts.channel > 6)
@@ -362,7 +412,11 @@ async function run()
     console.log("USB Serial number: " + port_details.serialNumber.toUpperCase());
     console.log("Unique ID: " + await cmd_get_uid(port));
 
-    let str = "Duty cycle: ";
+    console.log("Frequency: " + (await cmd_get_freq(port)) + " Hz");
+
+    let str;
+
+    str = "Duty cycle: ";
 
     for(let i = 0; i < 7; i++)
         str += ((await cmd_get_dc(port, i)) * 100).toFixed(2) + "%" + (i === 6 ? "" : ", ");
@@ -402,6 +456,7 @@ async function main()
         .option("-c, --channel <chan>", "Set the channel, if -d is not set, reads back the current value", parseInt)
         .option("-m, --voltage <chan>", "Read this voltage channel", parseInt)
         .option("-t, --temp <chan>", "Read this temperature channel", parseInt)
+        .option("-f, --freq <freq>", "Set the PWM frequency", parseFloat)
         .option("-V, --verbose", "Print debugging information")
         .action(run);
 

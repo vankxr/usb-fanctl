@@ -7,7 +7,7 @@
         {
             "name": "Debug",
             "cwd": "${workspaceRoot}",
-            "executable": "./bin/v1.usb-fanctl.elf",
+            "executable": "./bin/v2.usb-fanctl.elf",
             "request": "launch",
             "type": "cortex-debug",
             "preLaunchTask": "Build",

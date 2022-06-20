@@ -39,6 +39,14 @@ typedef struct __attribute__((__packed__))
 } usart_cmd_get_dc_t;
 typedef struct __attribute__((__packed__))
 {
+    float fFreq;
+} usart_cmd_set_freq_t;
+typedef struct __attribute__((__packed__))
+{
+    float fFreq;
+} usart_cmd_get_freq_t;
+typedef struct __attribute__((__packed__))
+{
     uint8_t ubChannel;
     float fVoltage;
 } usart_cmd_get_voltage_t;
@@ -59,12 +67,18 @@ typedef struct __attribute__((__packed__))
 } usart_cmd_get_sw_info_t;
 
 // Defines
+#define TIMER_PWM_MIN_FREQ_HZ   500
+#define TIMER_PWM_MAX_FREQ_HZ   1600000
+#define TIMER_PWM_DEF_FREQ_HZ   25000
+
 #define USART_HEADER_MAGIC      0xFAC7
 
 #define USART_CMD_SET_DC        0x01
 #define USART_CMD_GET_DC        0x02
 #define USART_CMD_GET_VOLTAGE   0x03
 #define USART_CMD_GET_TEMP      0x04
+#define USART_CMD_SET_FREQ      0x05
+#define USART_CMD_GET_FREQ      0x06
 #define USART_CMD_ERROR         0xE0
 #define USART_CMD_GET_UID       0xF0
 #define USART_CMD_GET_SW_INFO   0xF1
@@ -91,6 +105,12 @@ static void get_device_name(char *pszDeviceName, uint32_t ulDeviceNameSize);
 static uint16_t get_device_revision();
 
 static void wdog_warning_isr();
+
+static void init_timers();
+static void set_freq(float fFreq);
+static float get_freq();
+static void set_channel_dc(uint8_t ubChannel, float fDuty);
+static float get_channel_dc(uint8_t ubChannel);
 
 // Variables
 
@@ -262,8 +282,8 @@ void init_timers()
     // Timer 0
     cmu_hfper0_clock_gate(CMU_HFPERCLKEN0_TIMER0, 1);
 
-    TIMER0->CTRL = TIMER_CTRL_RSSCOIST | TIMER_CTRL_PRESC_DIV4 | TIMER_CTRL_CLKSEL_PRESCHFPERCLK | TIMER_CTRL_FALLA_NONE | TIMER_CTRL_RISEA_NONE | TIMER_CTRL_MODE_UP;
-    TIMER0->TOP = 255;
+    TIMER0->CTRL = TIMER_CTRL_RSSCOIST | TIMER_CTRL_PRESC_DIV1 | TIMER_CTRL_CLKSEL_PRESCHFPERCLK | TIMER_CTRL_FALLA_NONE | TIMER_CTRL_RISEA_NONE | TIMER_CTRL_MODE_UP;
+    TIMER0->TOP = HFPER_CLOCK_FREQ / TIMER_PWM_DEF_FREQ_HZ - 1;
     TIMER0->CNT = 0x0000;
 
     TIMER0->CC[0].CTRL = TIMER_CC_CTRL_PRSCONF_LEVEL | TIMER_CC_CTRL_CUFOA_NONE | TIMER_CC_CTRL_COFOA_SET | TIMER_CC_CTRL_CMOA_CLEAR | TIMER_CC_CTRL_MODE_PWM;
@@ -281,8 +301,8 @@ void init_timers()
     // Timer 1
     cmu_hfper0_clock_gate(CMU_HFPERCLKEN0_TIMER1, 1);
 
-    TIMER1->CTRL = TIMER_CTRL_RSSCOIST | TIMER_CTRL_PRESC_DIV4 | TIMER_CTRL_CLKSEL_PRESCHFPERCLK | TIMER_CTRL_FALLA_NONE | TIMER_CTRL_RISEA_NONE | TIMER_CTRL_MODE_UP;
-    TIMER1->TOP = 255;
+    TIMER1->CTRL = TIMER_CTRL_RSSCOIST | TIMER_CTRL_PRESC_DIV1 | TIMER_CTRL_CLKSEL_PRESCHFPERCLK | TIMER_CTRL_FALLA_NONE | TIMER_CTRL_RISEA_NONE | TIMER_CTRL_MODE_UP;
+    TIMER1->TOP = HFPER_CLOCK_FREQ / TIMER_PWM_DEF_FREQ_HZ - 1;
     TIMER1->CNT = 0x0000;
 
     TIMER1->CC[0].CTRL = TIMER_CC_CTRL_PRSCONF_LEVEL | TIMER_CC_CTRL_CUFOA_NONE | TIMER_CC_CTRL_COFOA_SET | TIMER_CC_CTRL_CMOA_CLEAR | TIMER_CC_CTRL_MODE_PWM;
@@ -304,6 +324,33 @@ void init_timers()
     TIMER0->CMD = TIMER_CMD_START;
     TIMER1->CMD = TIMER_CMD_START;
 }
+void set_freq(float fFreq)
+{
+    if(fFreq < TIMER_PWM_MIN_FREQ_HZ)
+        return;
+
+    if(fFreq > TIMER_PWM_MAX_FREQ_HZ)
+        return;
+
+    float fDutyBackup[7];
+
+    for(uint8_t i = 0; i < 7; i++)
+    {
+        fDutyBackup[i] = get_channel_dc(i);
+
+        set_channel_dc(i, 0.f);
+    }
+
+    TIMER0->TOPB = HFPER_CLOCK_FREQ / fFreq - 1;
+    TIMER1->TOPB = HFPER_CLOCK_FREQ / fFreq - 1;
+
+    for(uint8_t i = 0; i < 7; i++)
+        set_channel_dc(i, fDutyBackup[i]);
+}
+float get_freq()
+{
+    return (float)HFPER_CLOCK_FREQ / (TIMER0->TOP + 1);
+}
 void set_channel_dc(uint8_t ubChannel, float fDuty)
 {
     if(ubChannel > 6)
@@ -313,9 +360,9 @@ void set_channel_dc(uint8_t ubChannel, float fDuty)
         return;
 
     if(ubChannel > 2)
-        TIMER1->CC[ubChannel - 3].CCVB = (uint16_t)(fDuty * 256);
+        TIMER1->CC[ubChannel - 3].CCVB = (uint16_t)(fDuty * TIMER1->TOP);
     else
-        TIMER0->CC[ubChannel].CCVB = (uint16_t)(fDuty * 256);
+        TIMER0->CC[ubChannel].CCVB = (uint16_t)(fDuty * TIMER0->TOP);
 }
 float get_channel_dc(uint8_t ubChannel)
 {
@@ -323,9 +370,9 @@ float get_channel_dc(uint8_t ubChannel)
         return 0.f;
 
     if(ubChannel > 2)
-        return (float)TIMER1->CC[ubChannel - 3].CCV / 256;
+        return (float)TIMER1->CC[ubChannel - 3].CCV / TIMER1->TOP;
     else
-        return (float)TIMER0->CC[ubChannel].CCV / 256;
+        return (float)TIMER0->CC[ubChannel].CCV / TIMER0->TOP;
 }
 
 int init()
@@ -770,6 +817,109 @@ int main()
                         }
                         break;
                     }
+                }
+                break;
+                case USART_CMD_SET_FREQ:
+                {
+                    if(xHeader.ubPayloadSize != sizeof(usart_cmd_set_freq_t))
+                    {
+                        DBGPRINTLN_CTX("Invalid payload size!");
+
+                        xHeader.ubCommand = USART_CMD_ERROR;
+                        xHeader.ubPayloadSize = 0;
+                        usart0_write((uint8_t *)&xHeader, sizeof(usart_cmd_header_t));
+
+                        break;
+                    }
+
+                    if(usart0_available() < xHeader.ubPayloadSize)
+                    {
+                        DBGPRINTLN_CTX("Not enough data, waiting...");
+
+                        uint64_t ullStartTick = g_ullSystemTick;
+
+                        while(usart0_available() < xHeader.ubPayloadSize && g_ullSystemTick - ullStartTick <= 500);
+
+                        if(usart0_available() < xHeader.ubPayloadSize)
+                        {
+                            DBGPRINTLN_CTX("Timed out waiting for payload!");
+
+                            xHeader.ubCommand = USART_CMD_ERROR;
+                            xHeader.ubPayloadSize = 0;
+                            usart0_write((uint8_t *)&xHeader, sizeof(usart_cmd_header_t));
+
+                            break;
+                        }
+                    }
+
+                    usart_cmd_set_freq_t xPayload;
+
+                    DBGPRINTLN_CTX("Reading payload...");
+                    usart0_read((uint8_t *)&xPayload, xHeader.ubPayloadSize);
+
+                    DBGPRINTLN_CTX("USART_CMD_SET_FREQ [F %.6f]", xPayload.fFreq);
+
+                    if(xPayload.fFreq < TIMER_PWM_MIN_FREQ_HZ || xPayload.fFreq > TIMER_PWM_MAX_FREQ_HZ)
+                    {
+                        DBGPRINTLN_CTX("Invalid frequency!");
+
+                        xHeader.ubCommand = USART_CMD_ERROR;
+                        xHeader.ubPayloadSize = 0;
+                        usart0_write((uint8_t *)&xHeader, sizeof(usart_cmd_header_t));
+
+                        break;
+                    }
+
+                    set_freq(xPayload.fFreq);
+
+                    xHeader.ubPayloadSize = 0;
+                    usart0_write((uint8_t *)&xHeader, sizeof(usart_cmd_header_t));
+                }
+                break;
+                case USART_CMD_GET_FREQ:
+                {
+                    if(xHeader.ubPayloadSize != sizeof(usart_cmd_get_freq_t))
+                    {
+                        DBGPRINTLN_CTX("Invalid payload size!");
+
+                        xHeader.ubCommand = USART_CMD_ERROR;
+                        xHeader.ubPayloadSize = 0;
+                        usart0_write((uint8_t *)&xHeader, sizeof(usart_cmd_header_t));
+
+                        break;
+                    }
+
+                    if(usart0_available() < xHeader.ubPayloadSize)
+                    {
+                        DBGPRINTLN_CTX("Not enough data, waiting...");
+
+                        uint64_t ullStartTick = g_ullSystemTick;
+
+                        while(usart0_available() < xHeader.ubPayloadSize && g_ullSystemTick - ullStartTick <= 500);
+
+                        if(usart0_available() < xHeader.ubPayloadSize)
+                        {
+                            DBGPRINTLN_CTX("Timed out waiting for payload!");
+
+                            xHeader.ubCommand = USART_CMD_ERROR;
+                            xHeader.ubPayloadSize = 0;
+                            usart0_write((uint8_t *)&xHeader, sizeof(usart_cmd_header_t));
+
+                            break;
+                        }
+                    }
+
+                    usart_cmd_get_freq_t xPayload;
+
+                    DBGPRINTLN_CTX("Reading payload...");
+                    usart0_read((uint8_t *)&xPayload, xHeader.ubPayloadSize);
+
+                    DBGPRINTLN_CTX("USART_CMD_GET_FREQ");
+
+                    xPayload.fFreq = get_freq();
+
+                    usart0_write((uint8_t *)&xHeader, sizeof(usart_cmd_header_t));
+                    usart0_write((uint8_t *)&xPayload, sizeof(usart_cmd_get_freq_t));
                 }
                 break;
                 case USART_CMD_GET_UID:
